@@ -1,3 +1,10 @@
 <resources>
-    <string name="app_name">Consumir_Products</string>
+    <string name="app_name">Productos</string>
+    <string-array name="filter_options">
+        <item>Ordenar por...</item>
+        <item>A-Z</item>
+        <item>Z-A</item>
+        <item>Más caro primero</item>
+        <item>Más barato primero</item>
+    </string-array>
 </resources>
