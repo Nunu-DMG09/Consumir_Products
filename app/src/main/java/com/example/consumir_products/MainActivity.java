@@ -1,9 +1,11 @@
 package com.example.consumir_products;
 
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.AdapterView;
 import android.widget.Toast;
 
@@ -33,14 +35,16 @@ public class MainActivity extends AppCompatActivity {
     ProgressBar progressBar;
     SearchView searchView;
     Spinner spinnerFilter;
+    Button btnPrev, btnNext;
+    TextView tvPage;
 
     List<Product> allProducts = new ArrayList<>();
     List<Product> displayedProducts = new ArrayList<>();
 
-    int limit = 5;
+    int limit = 20;
     int skip = 0;
+    int currentPage = 1;
     boolean isLoading = false;
-    boolean isLastPage = false;
 
     ApiService api;
 
@@ -53,6 +57,9 @@ public class MainActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
         searchView = findViewById(R.id.searchView);
         spinnerFilter = findViewById(R.id.spinnerFilter);
+        btnPrev = findViewById(R.id.btnPrev);
+        btnNext = findViewById(R.id.btnNext);
+        tvPage = findViewById(R.id.tvPage);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new ProductsAdapter(this);
@@ -62,13 +69,26 @@ public class MainActivity extends AppCompatActivity {
 
         loadProducts();
 
-        setupScrollListener();
+        btnPrev.setOnClickListener(v -> {
+            if (skip >= limit) {
+                skip -= limit;
+                currentPage--;
+                loadProducts();
+            }
+        });
+
+        btnNext.setOnClickListener(v -> {
+            skip += limit;
+            currentPage++;
+            loadProducts();
+        });
+
         setupSearchView();
         setupFilter();
     }
 
     private void loadProducts() {
-        if (isLoading || isLastPage) return;
+        if (isLoading) return;
 
         isLoading = true;
         progressBar.setVisibility(ProgressBar.VISIBLE);
@@ -81,13 +101,20 @@ public class MainActivity extends AppCompatActivity {
 
                 if (response.isSuccessful() && response.body() != null) {
                     List<Product> newProducts = response.body().products;
+
                     if (newProducts.isEmpty()) {
-                        isLastPage = true;
+                        Toast.makeText(MainActivity.this, "No hay más productos", Toast.LENGTH_SHORT).show();
+                        if (skip >= limit) {
+                            skip -= limit;
+                            currentPage--;
+                        }
                     } else {
-                        skip += limit;
+                        allProducts.clear();
                         allProducts.addAll(newProducts);
+                        displayedProducts.clear();
                         displayedProducts.addAll(newProducts);
                         adapter.setProducts(displayedProducts);
+                        tvPage.setText("Página " + currentPage);
                     }
                 }
             }
@@ -97,20 +124,6 @@ public class MainActivity extends AppCompatActivity {
                 progressBar.setVisibility(ProgressBar.GONE);
                 isLoading = false;
                 Toast.makeText(MainActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void setupScrollListener() {
-        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(RecyclerView rv, int dx, int dy) {
-                super.onScrolled(rv, dx, dy);
-
-                LinearLayoutManager lm = (LinearLayoutManager) rv.getLayoutManager();
-                if (lm != null && lm.findLastCompletelyVisibleItemPosition() == displayedProducts.size() - 1) {
-                    loadProducts();
-                }
             }
         });
     }
